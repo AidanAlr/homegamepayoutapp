@@ -5,6 +5,14 @@ import java.util.ArrayList;
 
 public class HomeGame {
 
+    public ArrayList<Player> getParticipants() {
+        return participants;
+    }
+
+    public void reset() {
+        participants.clear();
+    }
+
     ArrayList<Player> participants = new ArrayList<>();
     DecimalFormat df = new DecimalFormat("#.00");
 

@@ -11,7 +11,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.List;
 
 public class Homegamepayoutapp extends JFrame {
     private static final Color BACKGROUND_COLOR = new Color(30, 30, 30);
@@ -22,17 +21,13 @@ public class Homegamepayoutapp extends JFrame {
     private static final Font MAIN_FONT = new Font("Roboto", Font.PLAIN, 14);
     private static final Font HEADER_FONT = new Font("Roboto", Font.BOLD, 18);
 
-    private HomeGame game;
+    private final HomeGame game;
     private JTextField nameField, buyInField, cashOutField;
-    private JTable playerTable;
     private DefaultTableModel tableModel;
-    private JButton addPlayerButton, calculatePayoutsButton;
-    private JLabel statusLabel;
-    private List<Player> players;
+    private JLabel currentBuyinCashoutLabel;
 
     public Homegamepayoutapp() {
         game = new HomeGame();
-        players = new ArrayList<>();
 
         setTitle("Poker Payout Calculator");
         setLayout(new BorderLayout(10, 10));
@@ -42,37 +37,66 @@ public class Homegamepayoutapp extends JFrame {
         JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
         mainPanel.setBackground(BACKGROUND_COLOR);
 
-        setupHeader(mainPanel);
+        mainPanel.add(getHeader(), BorderLayout.NORTH);
         setupInputAndTablePanel(mainPanel);
         setupStatusBar(mainPanel);
-
         add(mainPanel, BorderLayout.CENTER);
 
         pack();
-        setSize(800, 600);
+        setSize(600, 600);
         setLocationRelativeTo(null);
     }
+    private class ResetButtonListener implements ActionListener {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            game.reset();
+            updatePlayerTable();
+            updateCurrentBuyinCashoutLabel();
+            nameField.setText("");
+            buyInField.setText("");
+            cashOutField.setText("");
+        }
+    }
 
-    private void setupHeader(JPanel mainPanel) {
+    private JButton createResetButton() {
+        JButton resetButton = createStyledButton("Reset");
+        resetButton.addActionListener(new ResetButtonListener());
+        return resetButton;
+    }
+
+    private JPanel getHeader() {
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(BACKGROUND_COLOR);
+
         JLabel headerLabel = new JLabel("Poker Payout Calculator", SwingConstants.CENTER);
         headerLabel.setFont(HEADER_FONT);
         headerLabel.setForeground(ALT_FOREGROUND_COLOR);
         headerLabel.setBorder(new EmptyBorder(20, 20, 20, 20));
-        mainPanel.add(headerLabel, BorderLayout.NORTH);
+
+        JButton resetButton = createResetButton();
+
+        headerPanel.add(headerLabel, BorderLayout.CENTER);
+        headerPanel.add(resetButton, BorderLayout.EAST);
+
+        return headerPanel;
     }
 
     private void setupInputAndTablePanel(JPanel mainPanel) {
         JPanel centerPanel = new JPanel(new BorderLayout(10, 10));
         centerPanel.setBackground(BACKGROUND_COLOR);
 
-        JPanel inputPanel = new JPanel(new GridLayout(3, 2, 15, 15));
+        // Setup input panel
+        JPanel inputPanel = new JPanel(new GridLayout(3, 2, 0, 15));
         inputPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
         inputPanel.setBackground(BACKGROUND_COLOR);
 
+
+        // Create input fields
         nameField = createStyledTextField(20);
         buyInField = createStyledTextField(10);
         cashOutField = createStyledTextField(10);
 
+        // Add input fields to input panel
         inputPanel.add(createStyledLabel("Name:"));
         inputPanel.add(nameField);
         inputPanel.add(createStyledLabel("Buy-in:"));
@@ -80,15 +104,18 @@ public class Homegamepayoutapp extends JFrame {
         inputPanel.add(createStyledLabel("Cash-out:"));
         inputPanel.add(cashOutField);
 
+        // Add input panel and button panel to center panel, set up player table
         centerPanel.add(inputPanel, BorderLayout.NORTH);
-        centerPanel.add(getButtonPanel(mainPanel), BorderLayout.SOUTH);
+        centerPanel.add(getButtonPanel(), BorderLayout.SOUTH);
         setupPlayerTable(centerPanel);
+
+        // Add center panel to main panel
         mainPanel.add(centerPanel, BorderLayout.CENTER);
     }
 
     private void setupPlayerTable(JPanel centerPanel) {
         tableModel = new DefaultTableModel(new String[]{"Name", "Buy-in", "Cash-out", "Net"}, 0);
-        playerTable = new JTable(tableModel) {
+        JTable playerTable = new JTable(tableModel) {
             @Override
             public Component prepareRenderer(javax.swing.table.TableCellRenderer renderer, int row, int column) {
                 Component c = super.prepareRenderer(renderer, row, column);
@@ -114,12 +141,12 @@ public class Homegamepayoutapp extends JFrame {
         centerPanel.add(scrollPane, BorderLayout.CENTER);
     }
 
-    private JPanel getButtonPanel(JPanel mainPanel) {
+    private JPanel getButtonPanel() {
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 20));
         buttonPanel.setBackground(BACKGROUND_COLOR);
-        addPlayerButton = createStyledButton("Add Player");
+        JButton addPlayerButton = createStyledButton("Add Player");
         addPlayerButton.addActionListener(new AddPlayerListener());
-        calculatePayoutsButton = createStyledButton("Calculate Payouts");
+        JButton calculatePayoutsButton = createStyledButton("Calculate Payouts");
         calculatePayoutsButton.addActionListener(new CalculatePayoutsListener());
         buttonPanel.add(addPlayerButton);
         buttonPanel.add(calculatePayoutsButton);
@@ -127,11 +154,13 @@ public class Homegamepayoutapp extends JFrame {
     }
 
     private void setupStatusBar(JPanel mainPanel) {
-        statusLabel = new JLabel(" ");
-        statusLabel.setForeground(FOREGROUND_COLOR);
-        statusLabel.setFont(MAIN_FONT);
-        statusLabel.setBorder(new EmptyBorder(5, 10, 5, 10));
-        mainPanel.add(statusLabel, BorderLayout.SOUTH);
+        currentBuyinCashoutLabel = new JLabel("Total Buyin: " + game.getTotalBuyin() + " Total Cashout: " + game.getTotalCashout());
+        currentBuyinCashoutLabel.setForeground(ALT_FOREGROUND_COLOR);
+        mainPanel.add(currentBuyinCashoutLabel, BorderLayout.SOUTH);
+    }
+
+    private void updateCurrentBuyinCashoutLabel(){
+        currentBuyinCashoutLabel.setText("Current Buyin: " + game.getTotalBuyin() + " Current Cashout: " + game.getTotalCashout());
     }
 
     private JLabel createStyledLabel(String text) {
@@ -164,29 +193,28 @@ public class Homegamepayoutapp extends JFrame {
     }
 
     private class AddPlayerListener implements ActionListener {
+
         @Override
         public void actionPerformed(ActionEvent e) {
             String name = nameField.getText().trim();
             if (name.isEmpty()) {
-                showStatus("Please enter a name.", true);
                 return;
             }
 
-            int buyIn, cashOut;
+            float buyIn;
+            float cashOut;
             try {
-                buyIn = Integer.parseInt(buyInField.getText());
-                cashOut = Integer.parseInt(cashOutField.getText());
+                buyIn = Float.parseFloat(buyInField.getText().trim());
+                cashOut = Float.parseFloat(cashOutField.getText().trim());
             } catch (NumberFormatException ex) {
-                showStatus("Invalid buy-in or cash-out amount.", true);
                 return;
             }
-
+            // Create a new player and add them to the game
             Player player = new Player(name, buyIn, cashOut);
-            players.add(player);
             game.addPlayer(player);
 
             updatePlayerTable();
-            showStatus("Player added successfully.", false);
+            updateCurrentBuyinCashoutLabel();
 
             // Clear input fields
             nameField.setText("");
@@ -198,8 +226,8 @@ public class Homegamepayoutapp extends JFrame {
     private class CalculatePayoutsListener implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
-            if (players.isEmpty()) {
-                showStatus("Please add players before calculating payouts.", true);
+            if (game.getParticipants().isEmpty()) {
+
                 return;
             }
 
@@ -226,19 +254,14 @@ public class Homegamepayoutapp extends JFrame {
     private void updatePlayerTable() {
         tableModel.setRowCount(0);
         NumberFormat currencyFormat = NumberFormat.getCurrencyInstance();
-        for (Player player : players) {
+        for (Player player : game.getParticipants()) {
             tableModel.addRow(new Object[]{
                     player.getName(),
                     currencyFormat.format(player.getBuyIn()),
                     currencyFormat.format(player.getCashOut()),
-                    currencyFormat.format(player.getProfit())
+                    currencyFormat.format(player.getBuyIn() - player.getCashOut())
             });
         }
-    }
-
-    private void showStatus(String message, boolean isError) {
-        statusLabel.setText(message);
-        statusLabel.setForeground(isError ? Color.RED : ALT_FOREGROUND_COLOR);
     }
 
     public static void main(String[] args) {
