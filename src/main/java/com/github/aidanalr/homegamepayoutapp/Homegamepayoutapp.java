@@ -259,7 +259,7 @@ public class Homegamepayoutapp extends JFrame {
                     player.getName(),
                     currencyFormat.format(player.getBuyIn()),
                     currencyFormat.format(player.getCashOut()),
-                    currencyFormat.format(player.getBuyIn() - player.getCashOut())
+                    currencyFormat.format(player.getCashOut()-player.getBuying())
             });
         }
     }
